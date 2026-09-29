@@ -1,7 +1,29 @@
-import { NavLink } from "react-router-dom";
+
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { NAVIGATION_ITEMS } from "../utils/constants";
+import { adminLogout } from "../services/api";
 
 function Sidebar() {
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      await adminLogout();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      // adminLogout() removes the local token even if the request fails.
+      navigate("/login", { replace: true });
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -37,6 +59,18 @@ function Sidebar() {
             <small>API connected</small>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={handleLogout}
+          disabled={loggingOut}
+        >
+          <span className="logout-icon" aria-hidden="true">
+            ↪
+          </span>
+          <span>{loggingOut ? "Logging out..." : "Logout"}</span>
+        </button>
       </div>
     </aside>
   );

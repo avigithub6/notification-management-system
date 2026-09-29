@@ -1,3 +1,5 @@
+
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -7,30 +9,44 @@ from .views import (
     NotificationLogViewSet,
 )
 
+from .auth_views import (
+    admin_login,
+    admin_profile,
+    admin_logout,
+)
+
+
 router = DefaultRouter()
 
 router.register(
     "channels",
     NotificationChannelViewSet,
-    basename="notification-channel"
+    basename="notification-channel",
 )
 
 router.register(
     "triggers",
     TriggerViewSet,
-    basename="trigger"
+    basename="trigger",
 )
 
 router.register(
     "templates",
     NotificationTemplateViewSet,
-    basename="notification-template"
+    basename="notification-template",
 )
 
 router.register(
     "logs",
     NotificationLogViewSet,
-    basename="notification-log"
+    basename="notification-log",
 )
 
-urlpatterns = router.urls
+
+urlpatterns = [
+    path("auth/login/", admin_login, name="admin-login"),
+    path("auth/profile/", admin_profile, name="admin-profile"),
+    path("auth/logout/", admin_logout, name="admin-logout"),
+]
+
+urlpatterns += router.urls

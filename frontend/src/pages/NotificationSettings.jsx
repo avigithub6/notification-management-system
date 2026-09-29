@@ -1,4 +1,5 @@
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Workflow,
   Mail,
@@ -8,8 +9,6 @@ import {
   Plus,
   X,
 } from "lucide-react";
-
-import { useEffect, useMemo, useState } from "react";
 
 import {
   getTriggers,
@@ -156,51 +155,144 @@ function NotificationSettings() {
     (template) => template.enabled
   ).length;
 
-  const openEditor = (trigger, channel, template) => {
+  const selectedTrigger = editing
+    ? triggers.find(
+        (trigger) =>
+          String(trigger.id) === String(editing.triggerId)
+      )
+    : null;
+
+  const selectedChannel = editing
+    ? CHANNELS.find(
+        (channel) => channel.key === editing.channelKey
+      )
+    : null;
+
+  const selectedTemplate =
+    selectedTrigger && selectedChannel
+      ? templateMap.get(
+          `${selectedTrigger.id}:${selectedChannel.key}`
+        )
+      : null;
+
+  const isCreateMode = editing?.mode === "create";
+
+  const duplicateSelection =
+    isCreateMode && Boolean(selectedTemplate);
+
+  // Top Create: blank selection.
+  // Empty card Create: selected trigger/channel, blank form.
+  // Card Edit: existing template data.
+  const openEditor = (
+    trigger = null,
+    channel = null,
+    template = null
+  ) => {
     setError("");
     setNotice("");
 
-    setEditing({ trigger, channel, template });
+    if (template && trigger && channel) {
+      setEditing({
+        mode: "edit",
+        triggerId: String(trigger.id),
+        channelKey: channel.key,
+        templateId: template.id,
+      });
 
-    setForm(
-      template
-        ? {
-            subject: template.subject || "",
-            body: template.body || "",
-            enabled: template.enabled,
-          }
-        : { ...EMPTY_FORM }
-    );
+      setForm({
+        subject: template.subject || "",
+        body: template.body || "",
+        enabled: Boolean(template.enabled),
+      });
+
+      return;
+    }
+
+    setEditing({
+      mode: "create",
+      triggerId: trigger ? String(trigger.id) : "",
+      channelKey: channel ? channel.key : "",
+      templateId: null,
+    });
+
+    setForm({ ...EMPTY_FORM });
+  };
+
+  const changeEditorSelection = (
+    nextTriggerId,
+    nextChannelKey
+  ) => {
+    if (!editing || editing.mode !== "create") return;
+
+    setEditing((previous) => ({
+      ...previous,
+      triggerId: String(nextTriggerId),
+      channelKey: nextChannelKey,
+    }));
+
+    setForm({ ...EMPTY_FORM });
+    setError("");
   };
 
   const saveTemplate = async (event) => {
     event.preventDefault();
 
-    if (!editing || saving) return;
+    if (
+      !editing ||
+      !selectedTrigger ||
+      !selectedChannel ||
+      saving
+    ) {
+      return;
+    }
+
+    // Create must never overwrite an existing template.
+    if (editing.mode === "create" && selectedTemplate) {
+      setError(
+        "A template already exists for this Trigger and Channel. Please use Edit on its card."
+      );
+      return;
+    }
+
+    if (!form.body.trim()) {
+      setError("Message body is required.");
+      return;
+    }
+
+    if (
+      selectedChannel.key === "email" &&
+      !form.subject.trim()
+    ) {
+      setError("Email subject is required.");
+      return;
+    }
 
     setSaving(true);
     setError("");
 
     const payload = {
-      trigger: editing.trigger.id,
-      channel: editing.channel.key,
+      trigger: selectedTrigger.id,
+      channel: selectedChannel.key,
       subject: form.subject.trim(),
       body: form.body.trim(),
       enabled: form.enabled,
     };
 
     try {
-      if (editing.template) {
-        await updateTemplate(
-          editing.template.id,
-          payload
-        );
+      if (editing.mode === "edit") {
+        await updateTemplate(editing.templateId, payload);
       } else {
         await createTemplate(payload);
       }
 
+      const wasEditing = editing.mode === "edit";
+
       setEditing(null);
-      setNotice("Template saved successfully.");
+      setNotice(
+        wasEditing
+          ? "Template updated successfully."
+          : "Template created successfully."
+      );
 
       await loadData(false);
     } catch (err) {
@@ -279,6 +371,7 @@ function NotificationSettings() {
 
   return (
     <div className="dashboard-page ns-page">
+      {/* PAGE HEADER */}
       <div className="dashboard-header ns-page-header">
         <div>
           <h1>Notification Settings</h1>
@@ -287,31 +380,39 @@ function NotificationSettings() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="ns-refresh-button"
-          disabled={loading}
-          onClick={() => {
-            setError("");
-            setNotice("");
-            loadData();
-          }}
-        >
-          <RefreshCw size={15} />
-          Refresh
-        </button>
+        <div className="ns-header-actions">
+          <button
+            type="button"
+            className="ns-primary"
+            disabled={loading || triggers.length === 0}
+            onClick={() => openEditor()}
+          >
+            <Plus size={15} />
+            Create Template
+          </button>
+
+          <button
+            type="button"
+            className="ns-refresh-button"
+            disabled={loading}
+            onClick={() => {
+              setError("");
+              setNotice("");
+              loadData();
+            }}
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {notice && (
-        <div className="dashboard-success">
-          {notice}
-        </div>
+        <div className="dashboard-success">{notice}</div>
       )}
 
       {error && !editing && !testing && (
-        <div className="dashboard-error">
-          {error}
-        </div>
+        <div className="dashboard-error">{error}</div>
       )}
 
       {loading ? (
@@ -320,6 +421,7 @@ function NotificationSettings() {
         </div>
       ) : (
         <>
+          {/* OVERVIEW CARDS */}
           <div className="ns-overview">
             <div className="ns-overview-item">
               <span>Total Triggers</span>
@@ -342,11 +444,13 @@ function NotificationSettings() {
             </div>
           </div>
 
+          {/* SECTION HEADING */}
           <div className="ns-section-heading">
             <div>
               <h2>Trigger Configuration</h2>
               <p>
-                One table for all triggers and notification channels.
+                One table for all triggers and notification
+                channels.
               </p>
             </div>
 
@@ -355,6 +459,7 @@ function NotificationSettings() {
             </span>
           </div>
 
+          {/* ORIGINAL SEPARATE-CARD MATRIX */}
           <div className="ns-table-container">
             <table className="ns-settings-table">
               <thead>
@@ -367,25 +472,19 @@ function NotificationSettings() {
 
                   {CHANNELS.map((channel) => {
                     const Icon = channel.icon;
-
                     const globalEnabled =
                       channelMap.get(channel.key)?.enabled ??
                       false;
 
                     return (
-                      <th
-                        scope="col"
-                        key={channel.key}
-                      >
+                      <th scope="col" key={channel.key}>
                         <div className="ns-column-heading">
                           <div className="ns-column-title">
                             <Icon
                               size={17}
                               strokeWidth={1.8}
                             />
-                            <strong>
-                              {channel.label}
-                            </strong>
+                            <strong>{channel.label}</strong>
                           </div>
 
                           <span
@@ -418,6 +517,7 @@ function NotificationSettings() {
 
                   return (
                     <tr key={trigger.id}>
+                      {/* TRIGGER CARD */}
                       <th
                         scope="row"
                         className="ns-trigger-cell"
@@ -432,9 +532,7 @@ function NotificationSettings() {
                             </span>
 
                             <div className="ns-trigger-info">
-                              <h3>
-                                {trigger.name}
-                              </h3>
+                              <h3>{trigger.name}</h3>
 
                               <StatusBadge
                                 status={
@@ -464,9 +562,7 @@ function NotificationSettings() {
                               </span>
 
                               <div>
-                                <span>
-                                  TEMPLATES
-                                </span>
+                                <span>TEMPLATES</span>
                                 <strong>
                                   {stats.templates}
                                 </strong>
@@ -479,9 +575,7 @@ function NotificationSettings() {
                               </span>
 
                               <div>
-                                <span>
-                                  CHANNELS
-                                </span>
+                                <span>CHANNELS</span>
                                 <strong>
                                   {stats.channels}
                                 </strong>
@@ -491,11 +585,11 @@ function NotificationSettings() {
                         </div>
                       </th>
 
+                      {/* WHATSAPP / EMAIL / WEB PUSH CARDS */}
                       {CHANNELS.map((channel) => {
-                        const template =
-                          templateMap.get(
-                            `${trigger.id}:${channel.key}`
-                          );
+                        const template = templateMap.get(
+                          `${trigger.id}:${channel.key}`
+                        );
 
                         const globalEnabled =
                           channelMap.get(channel.key)
@@ -531,9 +625,8 @@ function NotificationSettings() {
                                     </strong>
 
                                     <p>
-                                      Create a message
-                                      template for this
-                                      channel.
+                                      Create a message template
+                                      for this channel.
                                     </p>
                                   </div>
 
@@ -567,8 +660,7 @@ function NotificationSettings() {
                                       />
 
                                       <span>
-                                        Template #
-                                        {template.id}
+                                        Template #{template.id}
                                       </span>
                                     </div>
 
@@ -579,9 +671,7 @@ function NotificationSettings() {
 
                                       {template.subject && (
                                         <strong className="ns-message-title">
-                                          {
-                                            template.subject
-                                          }
+                                          {template.subject}
                                         </strong>
                                       )}
 
@@ -617,13 +707,10 @@ function NotificationSettings() {
                                       type="button"
                                       className="ns-action-button"
                                       disabled={
-                                        busyTemplateId !==
-                                        null
+                                        busyTemplateId !== null
                                       }
                                       onClick={() =>
-                                        toggleTemplate(
-                                          template
-                                        )
+                                        toggleTemplate(template)
                                       }
                                     >
                                       {busyTemplateId ===
@@ -668,17 +755,12 @@ function NotificationSettings() {
                   <tr>
                     <td
                       className="ns-empty-row"
-                      colSpan={
-                        CHANNELS.length + 1
-                      }
+                      colSpan={CHANNELS.length + 1}
                     >
-                      <h3>
-                        No triggers configured
-                      </h3>
-
+                      <h3>No triggers configured</h3>
                       <p>
-                        Create your first trigger
-                        from the Triggers page.
+                        Create your first trigger from
+                        the Triggers page.
                       </p>
                     </td>
                   </tr>
@@ -689,6 +771,7 @@ function NotificationSettings() {
         </>
       )}
 
+      {/* CREATE / EDIT MODAL */}
       {editing && (
         <div className="ns-modal-overlay">
           <div
@@ -700,14 +783,13 @@ function NotificationSettings() {
             <div className="ns-modal-heading">
               <div>
                 <h2 id="ns-editor-title">
-                  {editing.template
-                    ? "Edit Template"
-                    : "Create Template"}
+                  {isCreateMode
+                    ? "Create Template"
+                    : "Edit Template"}
                 </h2>
 
                 <p>
-                  {editing.trigger.name} ·{" "}
-                  {editing.channel.label}
+                  Configure your notification in one form.
                 </p>
               </div>
 
@@ -731,48 +813,125 @@ function NotificationSettings() {
                 </div>
               )}
 
-              {editing.channel.key !==
-                "whatsapp" && (
+              <div className="ns-form-grid">
                 <label className="ns-field">
-                  <span>
-                    {editing.channel.key ===
-                    "web_push"
-                      ? "Notification title"
-                      : "Email subject"}
-                  </span>
+                  <span>Trigger *</span>
 
-                  <input
-                    value={form.subject}
+                  <select
+                    required
+                    value={editing.triggerId}
+                    disabled={!isCreateMode}
                     onChange={(event) =>
-                      setForm({
-                        ...form,
-                        subject:
-                          event.target.value,
-                      })
+                      changeEditorSelection(
+                        event.target.value,
+                        editing.channelKey
+                      )
                     }
-                    required={
-                      editing.channel.key ===
-                      "email"
-                    }
-                    placeholder="Enter title or subject"
-                  />
+                  >
+                    <option value="">
+                      Select trigger
+                    </option>
+
+                    {triggers.map((trigger) => (
+                      <option
+                        key={trigger.id}
+                        value={trigger.id}
+                      >
+                        {trigger.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
+
+                <label className="ns-field">
+                  <span>Channel *</span>
+
+                  <select
+                    required
+                    value={editing.channelKey}
+                    disabled={!isCreateMode}
+                    onChange={(event) =>
+                      changeEditorSelection(
+                        editing.triggerId,
+                        event.target.value
+                      )
+                    }
+                  >
+                    <option value="">
+                      Select channel
+                    </option>
+
+                    {CHANNELS.map((channel) => (
+                      <option
+                        key={channel.key}
+                        value={channel.key}
+                      >
+                        {channel.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {duplicateSelection && (
+                <div className="ns-existing-notice">
+                  A template already exists for this
+                  Trigger and Channel. Please use Edit
+                  on its card.
+                </div>
               )}
 
+              {editing.channelKey !== "whatsapp" &&
+                editing.channelKey !== "" && (
+                  <label className="ns-field">
+                    <span>
+                      {editing.channelKey === "web_push"
+                        ? "Notification Title"
+                        : "Email Subject"}
+                      {editing.channelKey === "email"
+                        ? " *"
+                        : ""}
+                    </span>
+
+                    <input
+                      type="text"
+                      value={form.subject}
+                      onChange={(event) =>
+                        setForm((previous) => ({
+                          ...previous,
+                          subject: event.target.value,
+                        }))
+                      }
+                      required={
+                        editing.channelKey === "email"
+                      }
+                      placeholder={
+                        editing.channelKey === "email"
+                          ? "Order {{order_id}} Confirmed"
+                          : "Order Update"
+                      }
+                    />
+                  </label>
+                )}
+
               <label className="ns-field">
-                <span>Message body</span>
+                <span>Message Body *</span>
 
                 <textarea
                   rows={6}
+                  required
                   value={form.body}
                   onChange={(event) =>
-                    setForm({
-                      ...form,
+                    setForm((previous) => ({
+                      ...previous,
                       body: event.target.value,
-                    })
+                    }))
                   }
-                  required
-                  placeholder="Enter notification message"
+                  placeholder={
+                    editing.channelKey === "whatsapp"
+                      ? "Enter WhatsApp message"
+                      : "Enter notification message"
+                  }
                 />
               </label>
 
@@ -781,11 +940,10 @@ function NotificationSettings() {
                   type="checkbox"
                   checked={form.enabled}
                   onChange={(event) =>
-                    setForm({
-                      ...form,
-                      enabled:
-                        event.target.checked,
-                    })
+                    setForm((previous) => ({
+                      ...previous,
+                      enabled: event.target.checked,
+                    }))
                   }
                 />
 
@@ -805,11 +963,18 @@ function NotificationSettings() {
                 <button
                   type="submit"
                   className="ns-primary"
-                  disabled={saving}
+                  disabled={
+                    saving ||
+                    !selectedTrigger ||
+                    !selectedChannel ||
+                    duplicateSelection
+                  }
                 >
                   {saving
                     ? "Saving..."
-                    : "Save Template"}
+                    : isCreateMode
+                    ? "Create Template"
+                    : "Update Template"}
                 </button>
               </div>
             </form>
@@ -817,10 +982,11 @@ function NotificationSettings() {
         </div>
       )}
 
+      {/* TEST MODAL */}
       {testing && (
         <div className="ns-modal-overlay">
           <div
-            className="ns-modal"
+            className="ns-modal ns-test-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="ns-test-title"
@@ -859,34 +1025,27 @@ function NotificationSettings() {
 
               <label className="ns-field">
                 <span>
-                  {testing.channel.key ===
-                  "whatsapp"
+                  {testing.channel.key === "whatsapp"
                     ? "Test phone number"
-                    : testing.channel.key ===
-                      "email"
+                    : testing.channel.key === "email"
                     ? "Test email address"
                     : "Web Push recipient ID"}
                 </span>
 
                 <input
                   type={
-                    testing.channel.key ===
-                    "email"
+                    testing.channel.key === "email"
                       ? "email"
                       : "text"
                   }
                   value={recipient}
                   onChange={(event) =>
-                    setRecipient(
-                      event.target.value
-                    )
+                    setRecipient(event.target.value)
                   }
                   placeholder={
-                    testing.channel.key ===
-                    "whatsapp"
+                    testing.channel.key === "whatsapp"
                       ? "+919876543210"
-                      : testing.channel.key ===
-                        "email"
+                      : testing.channel.key === "email"
                       ? "you@example.com"
                       : "Browser subscription ID"
                   }
@@ -909,19 +1068,12 @@ function NotificationSettings() {
                   </strong>
 
                   {testResult.message && (
-                    <p>
-                      {testResult.message}
-                    </p>
+                    <p>{testResult.message}</p>
                   )}
 
-                  {testResult.notification
-                    ?.id && (
+                  {testResult.notification?.id && (
                     <small>
-                      Log #
-                      {
-                        testResult
-                          .notification.id
-                      }
+                      Log #{testResult.notification.id}
                     </small>
                   )}
                 </div>
@@ -934,7 +1086,7 @@ function NotificationSettings() {
                   onClick={closeModal}
                   disabled={saving}
                 >
-                  Close
+                  Cancel
                 </button>
 
                 <button

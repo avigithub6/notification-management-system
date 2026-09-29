@@ -1,8 +1,6 @@
-# Notification Management System
+# NotifyFlow — Notification Management System
 
-A full-stack, event-driven notification management system built with **Django REST Framework** and **React (Vite)**.
-
-The application provides a centralized admin dashboard to manage notification triggers, channel-specific templates, and delivery settings. A connected Demo Store generates real website events that automatically send notifications through **WhatsApp, Email, and Web Push**.
+A full-stack, event-driven notification management system built with **Django REST Framework** and **React (Vite)**. NotifyFlow provides a centralized admin dashboard for managing notification triggers, channel-specific templates, delivery settings, and notification activity. A public Demo Store generates website events that process enabled notifications through **WhatsApp, Email, and browser Web Push**.
 
 This project was developed as a notification system assignment using sandbox and free-tier notification services.
 
@@ -11,18 +9,21 @@ This project was developed as a notification system assignment using sandbox and
 | Resource | URL |
 |---|---|
 | Frontend (Vercel) | https://notification-management-system-beta.vercel.app/ |
+| Admin Login | https://notification-management-system-beta.vercel.app/login |
+| Public Demo Store | https://notification-management-system-beta.vercel.app/demo-website |
 | Backend (Render) | https://notification-system-api-jx2l.onrender.com |
 | GitHub Repository | https://github.com/avigithub6/notification-management-system |
 | Walkthrough Video | Add the public/unlisted video URL after recording |
 
-**Demo Store:** https://notification-management-system-beta.vercel.app/demo-website
+> The Demo Store is public. Administrative dashboard pages require an authenticated staff account. A local admin account does not automatically exist in the production database.
 
 ## Technology Stack
 
 | Layer | Technology |
 |---|---|
 | Backend | Python, Django, Django REST Framework |
-| Frontend | React, Vite |
+| Authentication | Django authentication, DRF token authentication |
+| Frontend | React, Vite, React Router, Axios |
 | Database | PostgreSQL (production), SQLite (local development) |
 | WhatsApp | Meta WhatsApp Cloud API (sandbox) |
 | Email | Brevo transactional email API |
@@ -33,77 +34,71 @@ This project was developed as a notification system assignment using sandbox and
 
 ## Features
 
-### Centralized Notification Dashboard
+### Admin Authentication and Navigation
 
-The Notification Settings page uses a trigger-by-channel matrix:
+- Admin login using a Django staff account.
+- Token-based authentication for admin profile and logout endpoints.
+- Protected frontend dashboard routes, with profile validation before displaying admin pages.
+- Logout attempts to revoke the backend token, clears the locally stored token, and returns the user to `/login`.
+- Public `/demo-website` route remains accessible without an admin login.
+- Sidebar navigation includes a Logout button.
+
+**Authentication API endpoints:**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/login/` | Authenticate a staff user and issue a token |
+| GET | `/api/auth/profile/` | Validate the current admin session |
+| POST | `/api/auth/logout/` | Revoke the current token |
+
+> Frontend route protection is not a substitute for backend authorization. Review and protect every administrative API endpoint before using this project with untrusted users or production data. The Create New Account UI is not a completed public registration workflow.
+
+### Centralized Notification Management
+
+The **Notification Management** page uses a trigger-by-channel matrix:
 
 | Trigger | WhatsApp | Email | Web Push |
 |---|---|---|---|
 | Order Created | Template | Template | Template |
 | Payment Completed | Template | Template | Template |
 
-Each cell represents a channel-specific notification template for its corresponding trigger.
+Each cell represents a channel-specific template for the corresponding trigger. The dashboard supports:
 
-The dashboard supports:
-
-- Creating and editing notification templates.
-- Enabling or disabling templates and notification channels.
-- Sending test notifications.
+- Creating, editing, enabling, and disabling notification templates.
+- Enabling or disabling notification channels.
 - Managing triggers from a centralized interface.
+- Sending test notifications.
 - Viewing notification activity and delivery results.
-- Using dynamic variables in notification content.
+- Rendering dynamic variables in notification content.
 
 ### Implemented Website Triggers
 
-**1. Order Created — `order.created`**
+**Order Created — `order.created`:** When a customer creates an order in the Demo Store, the backend records the order and fires the event. Enabled templates are processed for the configured channels.
 
-When a customer creates an order through the Demo Store, the backend records the order and fires the Order Created event. Enabled notification templates are processed for WhatsApp, Email, and Web Push.
+**Payment Completed — `payment.completed`:** When payment is completed for a Demo Store order, the backend fires the event and processes its enabled templates.
 
-**2. Payment Completed — `payment.completed`**
-
-When payment is completed for an order through the Demo Store, the backend fires the Payment Completed event and processes its enabled notification templates.
-
-Both triggers are connected to actual Demo Store actions rather than being limited to manual test buttons.
+These triggers are connected to Demo Store actions, not only manual test buttons.
 
 ### Notification Channels
 
-**WhatsApp — Meta Cloud API Sandbox**
-
-Uses Meta's test phone number, temporary access token, and authorized test recipient. WhatsApp messages are sent through the backend integration.
-
-**Email — Brevo**
-
-Uses Brevo's transactional email API and a configured sender address.
-
-**Web Push — OneSignal**
-
-Uses OneSignal for browser-based push notifications. Users must allow browser notifications and subscribe before receiving Web Push messages.
-
-This project implements **browser Web Push**, not native Android or iOS push notifications.
+- **WhatsApp — Meta Cloud API sandbox:** Uses a test phone number, access token, and authorized test recipient. Sandbox delivery is restricted to approved test recipients.
+- **Email — Brevo:** Uses the transactional email API and a configured sender address.
+- **Web Push — OneSignal:** Sends browser notifications to subscribed users who have granted notification permission. This is **browser Web Push**, not native Android or iOS push.
 
 ### Dynamic Templates
 
-Templates support dynamic placeholders, such as:
+Templates support placeholders such as `{{customer_name}}` and `{{order_id}}`. Values are supplied by the relevant website event.
 
-- `{{customer_name}}`
-- `{{order_id}}`
+Example subject: `Order {{order_id}} Confirmed`
 
-Example email subject:
-
-`Order {{order_id}} Confirmed`
-
-Example body:
-
-`Hello {{customer_name}}, your order {{order_id}} has been created successfully.`
-
-Template values are supplied by the relevant website event.
+Example body: `Hello {{customer_name}}, your order {{order_id}} has been created successfully.`
 
 ## Project Structure
 
 ```text
 notification-management-system/
-├── backend/          # Django REST API and notification integrations
-├── frontend/         # React/Vite dashboard and Demo Store
+├── backend/          # Django REST API, authentication, and notification integrations
+├── frontend/         # React/Vite admin dashboard and public Demo Store
 └── README.md
 ```
 
@@ -111,10 +106,8 @@ notification-management-system/
 
 ### Prerequisites
 
-- Python
-- Node.js and npm
-- Git
-- Provider credentials for the notification channels you want to test
+- Python, Node.js, npm, and Git.
+- Provider credentials for the notification channels you want to test.
 
 ### Backend Setup (Windows PowerShell)
 
@@ -124,51 +117,48 @@ cd notification-management-system\backend
 
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
 pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Configure the required environment variables in `backend/.env`, then run:
+Configure the environment variables in `backend/.env`, then run:
 
 ```powershell
 python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Local backend:
-
-`http://127.0.0.1:8000/`
-
-Local API:
-
-`http://127.0.0.1:8000/api/`
-
-SQLite can be used for local development when no production `DATABASE_URL` is configured.
+Use the superuser credentials to sign in locally. Do not put real credentials in this README. Local backend: `http://127.0.0.1:8000/`; API base: `http://127.0.0.1:8000/api/`. SQLite can be used locally when no production `DATABASE_URL` is configured.
 
 ### Frontend Setup
 
-Open a second terminal:
+Open a second terminal from the repository root:
 
 ```powershell
-cd notification-management-system\frontend
+cd frontend
 npm install
+```
+
+Create `frontend/.env` and set:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Then run:
+
+```powershell
 npm run dev
 ```
 
-Local frontend:
-
-`http://localhost:5173/`
-
-Configure the frontend API base URL to point to the running Django backend.
+Open `http://localhost:5173/login` for the admin login or `http://localhost:5173/demo-website` for the public demo.
 
 ## Environment Configuration
 
 Store backend credentials in `backend/.env` locally and in **Render → Environment** for deployment.
 
-The required configuration includes:
-
-| Configuration | Purpose |
+| Variable | Purpose |
 |---|---|
 | `SECRET_KEY` | Django secret key |
 | `DEBUG` | Django debug setting; use `False` in production |
@@ -184,103 +174,54 @@ The required configuration includes:
 
 Additional sender, recipient, WhatsApp, or OneSignal configuration may be required by the corresponding integration.
 
-**Frontend environment variable:**
-
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
-
-For the deployed frontend:
+**Frontend environment variable (Vercel):**
 
 ```env
 VITE_API_BASE_URL=https://notification-system-api-jx2l.onrender.com
 ```
 
-Never commit `.env` files, database passwords, API keys, or access tokens to GitHub.
+Never commit `.env` files, passwords, API keys, or access tokens.
 
 ## WhatsApp Sandbox Configuration
 
-This assignment uses **Meta WhatsApp Cloud API sandbox**, not a production WhatsApp Business messaging account.
-
-Setup:
+This assignment uses the **Meta WhatsApp Cloud API sandbox**, not a production WhatsApp Business messaging account.
 
 1. Create a Meta for Developers app and add the WhatsApp product.
-2. Open WhatsApp API Setup.
-3. Generate a temporary access token.
-4. Use Meta's test phone number and phone number ID.
-5. Add the intended recipient to the authorized test recipient list.
-6. Configure the WhatsApp credentials in the backend environment.
-7. Test delivery from the Notification Settings page or Demo Store.
+2. Open WhatsApp API Setup and generate a temporary access token.
+3. Use Meta's test phone number and phone number ID.
+4. Add the intended recipient to the authorized test recipient list.
+5. Configure WhatsApp credentials in the backend environment.
+6. Test delivery from Notification Management or the Demo Store.
 
-**Temporary token expiry:** The token generated from Meta's API Setup page expires. When WhatsApp requests fail because the token is expired, generate a new token and update the existing `WHATSAPP_ACCESS_TOKEN` environment variable in Render.
+**Token expiry:** Meta's temporary token expires. If requests fail because it expired, generate a new token and update `WHATSAPP_ACCESS_TOKEN` in Render. Only authorized test recipients can receive sandbox messages.
 
-A permanent production token and verified company details are not required for this assignment's sandbox demonstration.
+## How to Use
 
-Only authorized test recipients can receive messages through the sandbox configuration.
+1. Open `/login` and sign in with an existing staff admin account.
+2. Open **Notification Management** and configure the WhatsApp, Email, and Web Push templates for each trigger. Save and enable the desired templates and channels.
+3. Use **Test Send** and inspect notification activity or error details.
+4. Open the public [Demo Store](https://notification-management-system-beta.vercel.app/demo-website), create an order, and trigger `order.created`.
+5. Complete payment for the demo order to trigger `payment.completed`.
+6. Verify delivery on the authorized WhatsApp number, configured email inbox, and subscribed browser.
+7. Use the sidebar **Logout** button to end the admin session.
 
-## How to Use the Application
-
-### 1. Open Notification Settings
-
-Open the deployed frontend and access the admin dashboard using the configured admin account.
-
-### 2. Configure Templates
-
-For each trigger, configure the required WhatsApp, Email, and Web Push templates. Add dynamic placeholders where applicable, save the templates, and enable the corresponding channels.
-
-### 3. Test a Channel
-
-Use the template's Test Send functionality and inspect the notification activity or error details if delivery fails.
-
-### 4. Test Order Created
-
-Open the Demo Store:
-
-https://notification-management-system-beta.vercel.app/demo-website
-
-Create an order using the demo form. The website fires `order.created` and processes enabled notification templates.
-
-### 5. Test Payment Completed
-
-Complete payment for the demo order. The website fires `payment.completed` and processes enabled notification templates.
-
-### 6. Verify Delivery
-
-Confirm receipt through:
-
-- WhatsApp on the authorized test number.
-- Email in the configured recipient inbox.
-- Browser notification on a subscribed browser.
-
-A channel sends only when its trigger/template is enabled and its provider configuration is valid.
+A notification is processed only when its trigger/template is enabled and the provider configuration is valid. Provider acceptance and actual device/inbox delivery may differ.
 
 ## Deployment
 
 ### Backend — Render
 
-Deploy the `backend` directory as a Python web service.
-
-Use the backend build script and a Gunicorn start command:
+Deploy the `backend` directory as a Python web service. Use the backend build script and the following Gunicorn start command:
 
 ```bash
 gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-file - --access-logfile - --capture-output
 ```
 
-Configure PostgreSQL and all required backend environment variables in Render.
-
-Run Django migrations during deployment.
+Configure PostgreSQL and backend environment variables, and run Django migrations during deployment. Create a staff/superuser account **in the production database** using a secure administrative process; the local SQLite superuser is not transferred automatically.
 
 ### Frontend — Vercel
 
-Deploy the `frontend` directory as a Vite application.
-
-Set:
-
-```env
-VITE_API_BASE_URL=https://notification-system-api-jx2l.onrender.com
-```
-
-The frontend includes an SPA rewrite so direct navigation to routes such as `/demo-website` works.
+Deploy the `frontend` directory as a Vite application. Set `VITE_API_BASE_URL` to the deployed Render backend URL. The frontend includes an SPA rewrite so direct navigation to routes such as `/login` and `/demo-website` works.
 
 ## Assignment Demonstration Checklist
 
@@ -288,37 +229,34 @@ The frontend includes an SPA rewrite so direct navigation to routes such as `/de
 - [x] React frontend deployed on Vercel.
 - [x] Centralized trigger/channel notification matrix.
 - [x] Two website events: Order Created and Payment Completed.
-- [x] WhatsApp Cloud API sandbox integration.
+- [x] Meta WhatsApp Cloud API sandbox integration.
 - [x] Brevo transactional email integration.
 - [x] OneSignal browser Web Push integration.
 - [x] Live delivery tested across all three channels.
+- [x] Admin login, profile validation, protected frontend routes, and logout implemented locally.
+- [x] Public Demo Store route.
 - [x] GitHub repository and live application URLs.
+- [ ] Confirm deployed admin login and production admin account.
+- [ ] Review backend authorization for all administrative endpoints.
 - [ ] Record and add the voice-narrated end-to-end walkthrough video.
 
 ## Walkthrough Video
 
-The walkthrough should demonstrate:
+The walkthrough should demonstrate admin login, Notification Management, creating/editing a template, test send, toggling a channel, Demo Store order creation and payment, received WhatsApp/Email/Web Push notifications, and admin logout.
 
-1. Opening the live frontend and accessing Notification Settings.
-2. Creating or editing a channel template.
-3. Testing a notification.
-4. Turning a channel off and back on.
-5. Creating an order in the Demo Store.
-6. Completing payment for the order.
-7. Showing the received WhatsApp, Email, and Web Push notifications for the implemented triggers.
-
-**Video URL:** Add the public/unlisted Loom, Google Drive, or YouTube link here after recording.
+**Video URL:** Add the public/unlisted Loom, Google Drive, or YouTube link after recording.
 
 ## Security Notes
 
-- Provider credentials are stored in backend environment variables.
-- Secret keys and access tokens must never be exposed in frontend code or committed to the repository.
-- Use a unique admin password for the deployed application.
-- Rotate any credentials that have previously been exposed.
-- The WhatsApp sandbox is intended for testing with authorized recipients only.
+- Keep provider credentials in backend environment variables, never frontend code.
+- Do not commit secrets, database passwords, or access tokens.
+- Use a unique, strong password for the deployed admin account.
+- Rotate any previously exposed credentials.
+- The WhatsApp sandbox is for authorized test recipients only.
+- A failed logout network request can clear the local token without confirming server-side revocation.
+- Before production use, enforce staff authorization on every administrative backend endpoint; protecting React routes alone is insufficient.
 
 ## Author
 
-**Avinash Gupta**
-
+**Avinash Gupta**  
 GitHub: https://github.com/avigithub6

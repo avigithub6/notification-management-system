@@ -1,4 +1,6 @@
 
+import re
+
 from django.core.exceptions import ValidationError
 
 from ..serializers import NotificationLogSerializer
@@ -7,13 +9,41 @@ from .dispatcher import dispatch_notification
 
 SUPPORTED_CHANNELS = ("email", "whatsapp", "web_push")
 
+PLACEHOLDER_PATTERN = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
-def fire_trigger(trigger, recipient=None, recipients=None):
+
+def render_template(text, context):
     """
-    Fire enabled templates using channel-specific recipients.
+    Replace placeholders such as {{customer_name}} and {{order_id}}
+    with actual event data.
+    """
+    text = text or ""
+    context = context or {}
 
-    Supports the old single-recipient argument for compatibility.
-    Channels without a recipient are skipped.
+    def replace(match):
+        key = match.group(1)
+
+        if key not in context:
+            raise ValidationError(
+                f"Missing template variable: {key}"
+            )
+
+        value = context[key]
+
+        return "" if value is None else str(value)
+
+    return PLACEHOLDER_PATTERN.sub(replace, text)
+
+
+def fire_trigger(
+    trigger,
+    recipient=None,
+    recipients=None,
+    context=None,
+):
+    """
+    Fire enabled templates using channel-specific recipients
+    and dynamically rendered event data.
     """
 
     if not trigger.active:
@@ -35,6 +65,14 @@ def fire_trigger(trigger, recipient=None, recipients=None):
     if not isinstance(recipients, dict):
         raise ValidationError(
             "Recipients must be an object."
+        )
+
+    if context is None:
+        context = {}
+
+    if not isinstance(context, dict):
+        raise ValidationError(
+            "Template context must be an object."
         )
 
     cleaned_recipients = {}
@@ -59,16 +97,25 @@ def fire_trigger(trigger, recipient=None, recipients=None):
             template.channel, ""
         )
 
-        # No recipient supplied for this channel: skip it.
         if not channel_recipient:
             continue
+
+        rendered_subject = render_template(
+            template.subject,
+            context,
+        )
+
+        rendered_message = render_template(
+            template.body,
+            context,
+        )
 
         log = dispatch_notification(
             trigger=trigger,
             channel=template.channel,
             recipient=channel_recipient,
-            subject=template.subject,
-            message=template.body,
+            subject=rendered_subject,
+            message=rendered_message,
         )
 
         logs.append(

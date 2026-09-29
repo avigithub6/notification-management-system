@@ -44,8 +44,8 @@ export const NAVIGATION_ITEMS = [
   
 {
   key: "notification-settings",
-  label: "Notification Settings",
-  path: "/notification-settings",
+  label: "Notification Management",
+  path: "/notification-management",
   icon: "⚙",
 },
 

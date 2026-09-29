@@ -236,6 +236,13 @@ class TriggerViewSet(viewsets.ModelViewSet):
                 notifications = fire_trigger_service(
                     trigger=trigger,
                     recipients=recipients,
+                    context={
+                        "customer_name": order.customer_name,
+                        "order_id": order.id,
+                        "product_name": order.product_name,
+                        "amount": order.amount,
+                        "payment_status": order.payment_status,
+                    },
                 )
 
             except Exception as exc:
@@ -325,6 +332,13 @@ class TriggerViewSet(viewsets.ModelViewSet):
                 notifications = fire_trigger_service(
                     trigger=trigger,
                     recipients=recipients,
+                    context={
+                        "customer_name": order.customer_name,
+                        "order_id": order.id,
+                        "product_name": order.product_name,
+                        "amount": order.amount,
+                        "payment_status": order.payment_status,
+                    },
                 )
 
             except Exception as exc:

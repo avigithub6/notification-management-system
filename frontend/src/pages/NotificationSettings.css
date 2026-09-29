@@ -1,6 +1,7 @@
 
 /* ==========================================
-   NOTIFICATION SETTINGS — COMPLETE CSS
+   NOTIFICATION SETTINGS
+   ORIGINAL SEPARATE-CARD DESIGN
 ========================================== */
 
 .ns-page {
@@ -10,9 +11,13 @@
   color: #17243c;
 }
 
-/* ==========================================
-   PAGE HEADER
-========================================== */
+.ns-page *,
+.ns-page *::before,
+.ns-page *::after {
+  box-sizing: border-box;
+}
+
+/* PAGE HEADER */
 
 .ns-page-header {
   display: flex;
@@ -35,6 +40,14 @@
   color: #64748b;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.ns-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .ns-refresh-button {
@@ -66,9 +79,7 @@
   cursor: not-allowed;
 }
 
-/* ==========================================
-   OVERVIEW CARDS
-========================================== */
+/* OVERVIEW CARDS */
 
 .ns-overview {
   display: grid;
@@ -90,7 +101,6 @@
   border-radius: 13px;
   background: #fff;
   box-shadow: 0 3px 12px rgba(22, 39, 72, 0.025);
-  box-sizing: border-box;
 }
 
 .ns-overview-item span {
@@ -107,9 +117,7 @@
   line-height: 1;
 }
 
-/* ==========================================
-   SECTION HEADER
-========================================== */
+/* SECTION HEADER */
 
 .ns-section-heading {
   display: flex;
@@ -147,9 +155,7 @@
   font-weight: 650;
 }
 
-/* ==========================================
-   SINGLE TABLE
-========================================== */
+/* ORIGINAL MATRIX WITH SEPARATE CARDS */
 
 .ns-table-container {
   width: 100%;
@@ -192,7 +198,6 @@
   border: 1px solid #e1e8f3;
   border-radius: 12px;
   background: #fff;
-  box-sizing: border-box;
 }
 
 .ns-heading-label {
@@ -262,9 +267,7 @@
   font-weight: normal;
 }
 
-/* ==========================================
-   TRIGGER CARD
-========================================== */
+/* TRIGGER CARD */
 
 .ns-trigger-identity {
   display: flex;
@@ -278,7 +281,6 @@
   border-radius: 15px;
   background: #fff;
   text-align: left;
-  box-sizing: border-box;
 }
 
 .ns-trigger-top {
@@ -400,9 +402,7 @@
   line-height: 1;
 }
 
-/* ==========================================
-   NOTIFICATION TEMPLATE CARDS
-========================================== */
+/* NOTIFICATION TEMPLATE CARDS */
 
 .ns-cell-card {
   display: flex;
@@ -414,7 +414,6 @@
   border: 1px solid #dce5f2;
   border-radius: 15px;
   background: #fff;
-  box-sizing: border-box;
 }
 
 .ns-cell-muted {
@@ -440,7 +439,6 @@
   min-height: 32px;
   padding-bottom: 13px;
   border-bottom: 1px solid #edf2f7;
-  box-sizing: border-box;
 }
 
 .ns-template-meta > span:last-child {
@@ -458,7 +456,6 @@
   min-width: 0;
   min-height: 115px;
   padding-top: 14px;
-  box-sizing: border-box;
 }
 
 .ns-preview-label {
@@ -506,9 +503,7 @@
   line-height: 1.5;
 }
 
-/* ==========================================
-   TEMPLATE ACTION BUTTONS
-========================================== */
+/* TEMPLATE ACTION BUTTONS */
 
 .ns-cell-actions {
   display: flex;
@@ -582,9 +577,7 @@
   background: #e0e7ff;
 }
 
-/* ==========================================
-   EMPTY TEMPLATE CARD
-========================================== */
+/* EMPTY TEMPLATE CARD */
 
 .ns-cell-empty {
   align-items: center;
@@ -638,9 +631,7 @@
   font-size: 12px;
 }
 
-/* ==========================================
-   MODAL
-========================================== */
+/* SINGLE COMPLETE FORM MODAL */
 
 .ns-modal-overlay {
   position: fixed;
@@ -651,24 +642,30 @@
   justify-content: center;
   padding: 20px;
   background: rgba(15, 23, 42, 0.55);
-  box-sizing: border-box;
 }
 
 .ns-modal {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   max-height: calc(100vh - 40px);
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid #e1e8f3;
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
 }
 
+.ns-test-modal {
+  max-width: 500px;
+}
+
 .ns-modal-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-shrink: 0;
   gap: 15px;
   padding: 22px 24px;
   border-bottom: 1px solid #edf2f7;
@@ -702,17 +699,30 @@
   cursor: pointer;
 }
 
+.ns-modal-heading > button:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
 .ns-form {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 0;
   padding: 23px 24px 24px;
+  overflow-y: auto;
+}
+
+.ns-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .ns-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .ns-field > span {
@@ -722,8 +732,10 @@
 }
 
 .ns-field input,
-.ns-field textarea {
+.ns-field textarea,
+.ns-field select {
   width: 100%;
+  min-width: 0;
   padding: 11px 12px;
   border: 1px solid #dce5f2;
   border-radius: 9px;
@@ -733,7 +745,11 @@
   font: inherit;
   font-size: 13px;
   line-height: 1.5;
-  box-sizing: border-box;
+}
+
+.ns-field select {
+  min-height: 44px;
+  cursor: pointer;
 }
 
 .ns-field textarea {
@@ -742,9 +758,15 @@
 }
 
 .ns-field input:focus,
-.ns-field textarea:focus {
+.ns-field textarea:focus,
+.ns-field select:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.ns-field input::placeholder,
+.ns-field textarea::placeholder {
+  color: #94a3b8;
 }
 
 .ns-check {
@@ -760,7 +782,41 @@
 .ns-check input {
   width: 16px;
   height: 16px;
+  margin: 0;
   accent-color: #4f46e5;
+}
+
+.ns-existing-notice {
+  padding: 11px 13px;
+  border: 1px solid #c7d2fe;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ns-variable-help {
+  padding: 12px 14px;
+  border: 1px solid #e1e8f3;
+  border-radius: 9px;
+  background: #f8faff;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.ns-variable-help code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11px;
+}
+
+.ns-variable-help p {
+  margin: 5px 0 0;
+  color: #64748b;
 }
 
 .ns-modal-actions {
@@ -768,6 +824,8 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 5px;
+  padding-top: 17px;
+  border-top: 1px solid #edf2f7;
 }
 
 .ns-secondary,
@@ -775,6 +833,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 39px;
   padding: 10px 17px;
   border-radius: 8px;
@@ -805,6 +864,8 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* TEST RESULT */
 
 .ns-result-success,
 .ns-result-failed {
@@ -837,19 +898,14 @@
   margin-top: 7px;
 }
 
-/* ==========================================
-   RESPONSIVE
-========================================== */
+/* RESPONSIVE */
 
 @media (max-width: 1100px) {
   .ns-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .ns-settings-table thead th:first-child {
-    width: 25%;
-  }
-
+  .ns-settings-table thead th:first-child,
   .ns-settings-table thead th:not(:first-child) {
     width: 25%;
   }
@@ -873,11 +929,16 @@
 
 @media (max-width: 700px) {
   .ns-page-header {
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .ns-page-header h1 {
     font-size: 23px;
+  }
+
+  .ns-header-actions {
+    justify-content: flex-start;
   }
 
   .ns-overview {
@@ -905,7 +966,6 @@
   .ns-settings-table td {
     display: block;
     width: 100%;
-    box-sizing: border-box;
   }
 
   .ns-settings-table thead {
@@ -949,9 +1009,32 @@
     padding: 12px 15px;
   }
 
+  .ns-modal-overlay {
+    padding: 10px;
+  }
+
+  .ns-modal {
+    max-height: calc(100vh - 20px);
+  }
+
   .ns-modal-heading,
   .ns-form {
     padding-left: 18px;
     padding-right: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ns-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ns-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ns-modal-actions button {
+    width: 100%;
   }
 }
