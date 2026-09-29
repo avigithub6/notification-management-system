@@ -1,5 +1,6 @@
 
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import AllowAny, IsAdminUser
 
 from django.utils import timezone
 from django.db import transaction
@@ -35,6 +36,7 @@ from .services.trigger_service import (
 # ============================================================
 
 class NotificationChannelViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
 
     queryset = NotificationChannel.objects.all()
 
@@ -53,6 +55,7 @@ class NotificationChannelViewSet(viewsets.ModelViewSet):
 # ============================================================
 
 class TriggerViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
 
     queryset = Trigger.objects.all()
 
@@ -201,6 +204,7 @@ class TriggerViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         url_path="create-demo-order",
+        permission_classes=[AllowAny],
     )
     def create_demo_order(self, request):
 
@@ -263,6 +267,7 @@ class TriggerViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         url_path="complete-demo-payment",
+        permission_classes=[AllowAny],
     )
     def complete_demo_payment(self, request):
 
@@ -360,6 +365,7 @@ class TriggerViewSet(viewsets.ModelViewSet):
 # ============================================================
 
 class NotificationTemplateViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
 
     queryset = NotificationTemplate.objects.select_related(
         "trigger"
@@ -461,9 +467,8 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
 # 4. NOTIFICATION LOGS
 # ============================================================
 
-class NotificationLogViewSet(
-    viewsets.ReadOnlyModelViewSet
-):
+class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAdminUser]
 
     queryset = NotificationLog.objects.select_related(
         "trigger"
