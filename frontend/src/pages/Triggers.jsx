@@ -585,7 +585,11 @@ function Triggers() {
                     <button
                         type="button"
                         className="refresh-button"
-                        onClick={loadTriggers}
+                        onClick={() =>{
+                            setMessage("")
+                            setError("")
+                            loadTriggers("")
+                        }}
                     >
                         ↻ Refresh
                     </button>

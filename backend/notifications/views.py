@@ -94,7 +94,18 @@ class TriggerViewSet(viewsets.ModelViewSet):
                 trigger=trigger,
                 recipient=recipient,
                 recipients=recipients,
-            )
+                    context={
+                        "customer_name": "Test Customer",
+                        "order_id": "TEST-001",
+                        "product_name": "Demo Product",
+                        "amount": "999",
+                        "payment_status": (
+                        "completed"
+                          if trigger.event_key == "payment.completed"
+                             else "pending"
+                          ),
+                        },
+                    )
 
         except Exception as exc:
             return Response(
