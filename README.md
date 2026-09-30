@@ -13,7 +13,7 @@ This project was developed as a notification system assignment using sandbox and
 | Public Demo Store | https://notification-management-system-beta.vercel.app/demo-website |
 | Backend (Render) | https://notification-system-api-jx2l.onrender.com |
 | GitHub Repository | https://github.com/avigithub6/notification-management-system |
-| Walkthrough Video | Add the public/unlisted video URL after recording |
+| Walkthrough Video | https://drive.google.com/file/d/1BFGYnSmYeiO782JLxgbJmr7bjvTbNi9S/view?usp=sharing |
 
 > The Demo Store is public. Administrative dashboard pages require an authenticated staff account. A local admin account does not automatically exist in the production database.
 
