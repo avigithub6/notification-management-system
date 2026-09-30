@@ -1,7 +1,5 @@
-
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAdminUser
-
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import status, viewsets
@@ -28,6 +26,7 @@ from .services.dispatcher import dispatch_notification
 
 from .services.trigger_service import (
     fire_trigger as fire_trigger_service,
+    render_template,
 )
 
 
@@ -94,18 +93,18 @@ class TriggerViewSet(viewsets.ModelViewSet):
                 trigger=trigger,
                 recipient=recipient,
                 recipients=recipients,
-                    context={
-                        "customer_name": "Test Customer",
-                        "order_id": "TEST-001",
-                        "product_name": "Demo Product",
-                        "amount": "999",
-                        "payment_status": (
+                context={
+                    "customer_name": "Test Customer",
+                    "order_id": "TEST-001",
+                    "product_name": "Demo Product",
+                    "amount": "999",
+                    "payment_status": (
                         "completed"
-                          if trigger.event_key == "payment.completed"
-                             else "pending"
-                          ),
-                        },
-                    )
+                        if trigger.event_key == "payment.completed"
+                        else "pending"
+                    ),
+                },
+            )
 
         except Exception as exc:
             return Response(
@@ -124,7 +123,6 @@ class TriggerViewSet(viewsets.ModelViewSet):
             }
         )
 
-    
     @action(
         detail=False,
         methods=["post"],
@@ -371,6 +369,7 @@ class TriggerViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+
 # ============================================================
 # 3. NOTIFICATION TEMPLATES
 # ============================================================
@@ -403,7 +402,6 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
 
         # Validate recipient
         if not recipient:
-
             return Response(
                 {
                     "success": False,
@@ -414,7 +412,6 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
 
         # Check whether trigger is active
         if not template.trigger.active:
-
             return Response(
                 {
                     "success": False,
@@ -425,7 +422,6 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
 
         # Check whether template is enabled
         if not template.enabled:
-
             return Response(
                 {
                     "success": False,
@@ -434,19 +430,40 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Dispatch notification
+        # Test data used only for Test Send.
+        test_context = {
+            "customer_name": "Test Customer",
+            "order_id": "TEST-001",
+            "product_name": "Demo Product",
+            "amount": "999",
+            "payment_status": (
+                "completed"
+                if template.trigger.event_key == "payment.completed"
+                else "pending"
+            ),
+        }
+
+        # Render dynamic variables before sending.
         try:
+            rendered_subject = render_template(
+                template.subject,
+                test_context,
+            )
+
+            rendered_message = render_template(
+                template.body,
+                test_context,
+            )
 
             log = dispatch_notification(
                 trigger=template.trigger,
                 channel=template.channel,
                 recipient=recipient,
-                subject=template.subject,
-                message=template.body,
+                subject=rendered_subject,
+                message=rendered_message,
             )
 
         except Exception as exc:
-
             return Response(
                 {
                     "success": False,
@@ -459,14 +476,12 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
         return Response(
             {
                 "success": log.status == "sent",
-
                 "message": (
                     "Notification sent."
                     if log.status == "sent"
                     else log.error_message
                     or "Notification delivery failed."
                 ),
-
                 "notification": NotificationLogSerializer(
                     log
                 ).data,
@@ -486,4 +501,3 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
     ).all()
 
     serializer_class = NotificationLogSerializer
-
